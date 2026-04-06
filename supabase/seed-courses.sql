@@ -1,0 +1,13 @@
+-- Seed script for courses
+-- After running schema.sql, import your courses from umich_courses.csv
+-- You can do this via the Supabase dashboard (Table Editor > Import CSV)
+-- or using the SQL below as a template.
+--
+-- To bulk import from CSV:
+-- 1. Go to Supabase Dashboard > Table Editor > courses
+-- 2. Click "Insert" > "Import data from CSV"
+-- 3. Upload your umich_courses.csv
+-- 4. Map the single column to `course_name`
+--
+-- Or use this SQL pattern for manual inserts:
+-- INSERT INTO courses (course_name) VALUES ('AAS103'), ('AAS104'), ... ON CONFLICT DO NOTHING;
