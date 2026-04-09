@@ -92,6 +92,13 @@ export default function Navbar({
                     >
                       View profile
                     </Link>
+                    <Link
+                      href="/change-password"
+                      className="block px-4 py-2 text-sm text-umBlue hover:bg-slate-100"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      Change password
+                    </Link>
                     <button
                       type="button"
                       onClick={handleSignOut}
@@ -165,6 +172,13 @@ export default function Navbar({
                       onClick={() => setMenuOpen(false)}
                     >
                       View profile
+                    </Link>
+                    <Link
+                      href="/change-password"
+                      className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Change password
                     </Link>
                     <button
                       onClick={() => {

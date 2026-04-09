@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  if (!user && [...protectedRoutes, "/profile"].some((r) => pathname.startsWith(r))) {
+  if (!user && [...protectedRoutes, "/profile", "/change-password"].some((r) => pathname.startsWith(r))) {
     const url = request.nextUrl.clone();
     url.pathname = "/signin";
     return NextResponse.redirect(url);
