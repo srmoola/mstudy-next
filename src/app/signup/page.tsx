@@ -40,6 +40,20 @@ export default function SignUpPage() {
       return;
     }
 
+    const { data: existingProfile, error: profileLookupError } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (!profileLookupError && existingProfile) {
+      setErrors([
+        "An account with this email already exists. If this is you, sign in below.",
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -50,7 +64,17 @@ export default function SignUpPage() {
     });
 
     if (error) {
-      setErrors([error.message]);
+      const lower = error.message.toLowerCase();
+      const looksLikeDuplicate =
+        lower.includes("already registered") ||
+        lower.includes("already been registered") ||
+        lower.includes("user already") ||
+        lower.includes("email address is already");
+      setErrors([
+        looksLikeDuplicate
+          ? "An account with this email already exists. If this is you, sign in below."
+          : error.message,
+      ]);
       setLoading(false);
       return;
     }
