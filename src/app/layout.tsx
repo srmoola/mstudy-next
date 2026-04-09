@@ -20,11 +20,28 @@ export default async function RootLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  let onboardingComplete = false;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("year, gender, match_same_gender, location_preference, time_preference, day_preference")
+      .eq("id", user.id)
+      .single();
+
+    onboardingComplete =
+      !!profile?.year &&
+      !!profile?.gender &&
+      (profile?.match_same_gender === true || profile?.match_same_gender === false) &&
+      !!profile?.location_preference?.length &&
+      !!profile?.time_preference?.length &&
+      !!profile?.day_preference?.length;
+  }
 
   return (
     <html lang="en" className="h-full">
       <body className="min-h-screen m-0 overflow-x-hidden bg-white text-umBlue">
-        <Navbar user={user ? { id: user.id } : null} />
+        <Navbar user={user ? { id: user.id } : null} onboardingComplete={onboardingComplete} />
         <Suspense>
           <FlashMessages />
         </Suspense>

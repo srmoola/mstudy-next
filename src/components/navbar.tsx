@@ -2,19 +2,59 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function Navbar({ user }: { user: { id: string } | null }) {
+export default function Navbar({
+  user,
+  onboardingComplete,
+}: {
+  user: { id: string } | null;
+  onboardingComplete: boolean;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const supabase = createClient();
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    setProfileOpen(false);
+    setMenuOpen(false);
     router.push("/");
     router.refresh();
   }
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      const target = event.target as Node;
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(target)) {
+        setMenuOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
+        setProfileOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const profileButton = (
+    <button
+      type="button"
+      onClick={() => setProfileOpen((open) => !open)}
+      aria-label="Open profile menu"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-umBlue transition hover:border-umMaize hover:text-umMaize"
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+      </svg>
+    </button>
+  );
 
   return (
     <header className="w-full bg-white/90 backdrop-blur relative z-[100]">
@@ -40,17 +80,42 @@ export default function Navbar({ user }: { user: { id: string } | null }) {
             Safety
           </Link>
           {user ? (
-            <>
-              <Link href="/onboarding" className="transition hover:text-umMaize">
-                Onboarding
-              </Link>
-              <button
-                onClick={handleSignOut}
-                className="rounded-full bg-umBlue px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-sm shadow-slate-400/40 transition hover:bg-[#001633] hover:text-white"
-              >
-                Sign out
-              </button>
-            </>
+            onboardingComplete ? (
+              <div className="relative" ref={profileMenuRef}>
+                {profileButton}
+                {profileOpen && (
+                  <div className="absolute right-0 z-[120] mt-2 w-44 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-2 text-sm text-umBlue hover:bg-slate-100"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      View profile
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="block w-full px-4 py-2 text-left text-sm text-umBlue hover:bg-slate-100"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link href="/onboarding" className="transition hover:text-umMaize">
+                  Onboarding
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded-full bg-umBlue px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-sm shadow-slate-400/40 transition hover:bg-[#001633] hover:text-white"
+                >
+                  Sign out
+                </button>
+              </>
+            )
           ) : (
             <>
               <Link href="/signin" className="transition hover:text-umMaize">
@@ -67,7 +132,7 @@ export default function Navbar({ user }: { user: { id: string } | null }) {
         </nav>
 
         {/* Mobile nav */}
-        <div className="relative md:hidden">
+        <div className="relative md:hidden" ref={mobileMenuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="inline-flex flex-shrink-0 items-center gap-2 rounded-full border border-umBlue px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-umBlue shadow-sm shadow-slate-400/40 transition hover:border-umMaize hover:text-umMaize"
@@ -92,24 +157,45 @@ export default function Navbar({ user }: { user: { id: string } | null }) {
                 Safety
               </Link>
               {user ? (
-                <>
-                  <Link
-                    href="/onboarding"
-                    className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Onboarding
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      handleSignOut();
-                    }}
-                    className="mt-1 block w-full px-4 py-1.5 text-left text-umBlue hover:bg-slate-100"
-                  >
-                    Sign out
-                  </button>
-                </>
+                onboardingComplete ? (
+                  <>
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      View profile
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleSignOut();
+                      }}
+                      className="mt-1 block w-full px-4 py-1.5 text-left text-umBlue hover:bg-slate-100"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/onboarding"
+                      className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Onboarding
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleSignOut();
+                      }}
+                      className="mt-1 block w-full px-4 py-1.5 text-left text-umBlue hover:bg-slate-100"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                )
               ) : (
                 <>
                   <Link

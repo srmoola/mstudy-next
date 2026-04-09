@@ -1,30 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { YEARS, GENDERS, LOCATIONS, TIMES, DAYS } from "@/lib/types";
 
-interface CourseOption {
-  id: number;
-  name: string;
+interface ProfileForm {
+  first_name: string;
+  last_name: string;
+  gender: string;
+  year: string;
+  match_same_gender: string;
+  location_preference: string[];
+  time_preference: string[];
+  day_preference: string[];
 }
 
-export default function OnboardingPage() {
+export default function ProfilePage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<CourseOption[]>([]);
-  const [showResults, setShowResults] = useState(false);
-  const [selectedCourses, setSelectedCourses] = useState<Map<number, string>>(new Map());
-  const [profile, setProfile] = useState<{
-    gender: string;
-    year: string;
-    match_same_gender: string;
-    location_preference: string[];
-    time_preference: string[];
-    day_preference: string[];
-  }>({
+  const [loaded, setLoaded] = useState(false);
+  const [profile, setProfile] = useState<ProfileForm>({
+    first_name: "",
+    last_name: "",
     gender: "",
     year: "",
     match_same_gender: "",
@@ -33,103 +31,46 @@ export default function OnboardingPage() {
     day_preference: [],
   });
 
-  const searchRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
     async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/signin");
+        return;
+      }
 
       const { data: prof } = await supabase
         .from("profiles")
-        .select("gender, year, match_same_gender, location_preference, time_preference, day_preference")
+        .select(
+          "first_name, last_name, gender, year, match_same_gender, location_preference, time_preference, day_preference"
+        )
         .eq("id", user.id)
         .single();
 
       if (prof) {
-        const alreadyCompleted =
-          !!prof.gender &&
-          !!prof.year &&
-          (prof.match_same_gender === true || prof.match_same_gender === false) &&
-          !!prof.location_preference?.length &&
-          !!prof.time_preference?.length &&
-          !!prof.day_preference?.length;
-
         setProfile({
-          gender: alreadyCompleted ? (prof.gender || "") : "",
-          year: alreadyCompleted ? (prof.year || "") : "",
-          match_same_gender: alreadyCompleted
-            ? prof.match_same_gender
-              ? "true"
-              : prof.match_same_gender === false
-                ? "false"
-                : ""
-            : "",
-          location_preference: alreadyCompleted ? (prof.location_preference || []) : [],
-          time_preference: alreadyCompleted ? (prof.time_preference || []) : [],
-          day_preference: alreadyCompleted ? (prof.day_preference || []) : [],
+          first_name: prof.first_name || "",
+          last_name: prof.last_name || "",
+          gender: prof.gender || "",
+          year: prof.year || "",
+          match_same_gender:
+            prof.match_same_gender === true ? "true" : prof.match_same_gender === false ? "false" : "",
+          location_preference: prof.location_preference || [],
+          time_preference: prof.time_preference || [],
+          day_preference: prof.day_preference || [],
         });
       }
 
-      const { data: enrollments } = await supabase
-        .from("user_classes")
-        .select("course_id, courses(id, course_name)")
-        .eq("user_id", user.id);
-
-      if (enrollments) {
-        const map = new Map<number, string>();
-        for (const e of enrollments) {
-          const course = e.courses as unknown as { id: number; course_name: string };
-          if (course) map.set(course.id, course.course_name);
-        }
-        setSelectedCourses(map);
-      }
+      setLoaded(true);
     }
+
     loadProfile();
-  }, [supabase]);
-
-  const runSearch = useCallback(async (q: string) => {
-    if (q.length < 3) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("courses")
-      .select("id, course_name")
-      .ilike("course_name", `%${q}%`)
-      .order("course_name")
-      .limit(20);
-
-    if (data) {
-      setSearchResults(data.map((c) => ({ id: c.id, name: c.course_name })));
-      setShowResults(true);
-    }
-  }, [supabase]);
-
-  function handleSearchInput(val: string) {
-    setSearchQuery(val);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSearch(val), 200);
-  }
-
-  function addCourse(course: CourseOption) {
-    setSelectedCourses((prev) => new Map(prev).set(course.id, course.name));
-    setSearchQuery("");
-    setShowResults(false);
-  }
-
-  function removeCourse(id: number) {
-    setSelectedCourses((prev) => {
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
-  }
+  }, [router, supabase]);
 
   function toggleArrayPref(
     field: "location_preference" | "time_preference" | "day_preference",
@@ -149,6 +90,8 @@ export default function OnboardingPage() {
     setLoading(true);
 
     const errs: string[] = [];
+    if (!profile.first_name.trim()) errs.push("First name is required");
+    if (!profile.last_name.trim()) errs.push("Last name is required");
     if (!profile.gender) errs.push("Gender is required");
     if (!profile.year) errs.push("Year is required");
     if (profile.match_same_gender === "") errs.push("Match preference is required");
@@ -162,16 +105,21 @@ export default function OnboardingPage() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       setErrors(["Not authenticated"]);
       setLoading(false);
       return;
     }
 
-    const { error: updateError } = await supabase
+    const { error } = await supabase
       .from("profiles")
       .update({
+        first_name: profile.first_name.trim(),
+        last_name: profile.last_name.trim(),
         gender: profile.gender,
         year: profile.year,
         match_same_gender: profile.match_same_gender === "true",
@@ -182,57 +130,35 @@ export default function OnboardingPage() {
       })
       .eq("id", user.id);
 
-    if (updateError) {
-      setErrors([updateError.message]);
+    if (error) {
+      setErrors([error.message]);
       setLoading(false);
       return;
     }
 
-    const newCourseIds = Array.from(selectedCourses.keys());
-
-    const { data: existingEnrollments } = await supabase
-      .from("user_classes")
-      .select("course_id")
-      .eq("user_id", user.id);
-
-    const oldIds = (existingEnrollments || []).map((e) => e.course_id);
-    const toRemove = oldIds.filter((id) => !newCourseIds.includes(id));
-    const toAdd = newCourseIds.filter((id) => !oldIds.includes(id));
-
-    for (const courseId of toRemove) {
-      await supabase.from("user_classes").delete().eq("user_id", user.id).eq("course_id", courseId);
-      await supabase.rpc("decrement_course_students", { cid: courseId });
-    }
-
-    for (const courseId of toAdd) {
-      await supabase.from("user_classes").insert({ user_id: user.id, course_id: courseId });
-      await supabase.rpc("increment_course_students", { cid: courseId });
-    }
-
-    router.push("/dashboard?notice=" + encodeURIComponent("Onboarding complete! You're ready to find a study partner."));
+    router.push("/dashboard?notice=" + encodeURIComponent("Profile updated."));
     router.refresh();
   }
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowResults(false);
-      }
-    }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
+  if (!loaded) {
+    return (
+      <main className="min-h-screen w-full bg-white text-umBlue">
+        <div className="mx-auto max-w-3xl px-3 py-10 sm:px-6 sm:py-14 lg:px-10 xl:px-16 2xl:px-24">
+          <p className="text-sm text-slate-600">Loading profile...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen w-full bg-white text-umBlue">
       <div className="mx-auto max-w-3xl px-3 py-10 sm:px-6 sm:py-14 lg:px-10 xl:px-16 2xl:px-24">
         <header className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-umMaize">
-            Tell us how you study
-          </p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Onboarding</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-umMaize">Your account</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Edit profile</h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-600 sm:text-base">
-            A few quick questions so we can match you with the right Michigan study partners.
+            Update your information and matching preferences. Class enrollment is managed from your
+            dashboard.
           </p>
         </header>
 
@@ -249,14 +175,33 @@ export default function OnboardingPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Gender */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-semibold text-umBlue">
+                  First name<span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={profile.first_name}
+                  onChange={(e) => setProfile((p) => ({ ...p, first_name: e.target.value }))}
+                  className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-umBlue placeholder-slate-400 focus:border-umMaize focus:outline-none focus:ring-2 focus:ring-umMaize/30"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-umBlue">
+                  Last name<span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={profile.last_name}
+                  onChange={(e) => setProfile((p) => ({ ...p, last_name: e.target.value }))}
+                  className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-umBlue placeholder-slate-400 focus:border-umMaize focus:outline-none focus:ring-2 focus:ring-umMaize/30"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-umBlue">
                 Gender<span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-slate-500">
-                Used only for matching if you choose same-gender matches.
-              </p>
               <div className="mt-1 grid grid-cols-3 gap-3 text-sm">
                 {GENDERS.map((g) => (
                   <label
@@ -270,7 +215,6 @@ export default function OnboardingPage() {
                       checked={profile.gender === g}
                       onChange={() => setProfile((p) => ({ ...p, gender: g }))}
                       className="h-4 w-4 text-umBlue"
-                      required
                     />
                     <span>{g}</span>
                   </label>
@@ -278,7 +222,6 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Year */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-umBlue">
                 Year<span className="text-red-500">*</span>
@@ -296,7 +239,6 @@ export default function OnboardingPage() {
                       checked={profile.year === y}
                       onChange={() => setProfile((p) => ({ ...p, year: y }))}
                       className="h-4 w-4 text-umBlue"
-                      required
                     />
                     <span>{y}</span>
                   </label>
@@ -304,14 +246,10 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Match same gender */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-umBlue">
                 Match preference<span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-slate-500">
-                Choose if you only want same-gender matches or if it doesn&apos;t matter.
-              </p>
               <div className="mt-1 flex flex-col gap-2 text-sm sm:flex-row">
                 <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 hover:border-umMaize">
                   <input
@@ -321,7 +259,6 @@ export default function OnboardingPage() {
                     checked={profile.match_same_gender === "true"}
                     onChange={() => setProfile((p) => ({ ...p, match_same_gender: "true" }))}
                     className="h-4 w-4 text-umBlue"
-                    required
                   />
                   <span>Yes, same gender only</span>
                 </label>
@@ -339,12 +276,10 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Location preference */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-umBlue">
                 Where do you like to study?<span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-slate-500">Pick at least one.</p>
               <div className="mt-1 flex flex-wrap gap-3 text-sm">
                 {LOCATIONS.map((loc) => (
                   <label
@@ -363,12 +298,10 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Time preference */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-umBlue">
                 When do you usually study?<span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-slate-500">Pick at least one.</p>
               <div className="mt-1 flex flex-wrap gap-3 text-sm">
                 {TIMES.map((time) => (
                   <label
@@ -387,75 +320,10 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Courses */}
-            <div className="space-y-2" ref={searchRef}>
-              <label className="block text-sm font-semibold text-umBlue">
-                Which courses are you in?
-              </label>
-              <p className="text-xs text-slate-500">
-                Type at least three characters to search 14,000+ courses. Click a course to add
-                it; remove with <span className="font-medium">&times;</span>.
-              </p>
-
-              <div className="relative mt-1">
-                <input
-                  type="search"
-                  autoComplete="off"
-                  placeholder="e.g. EECS 203"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchInput(e.target.value)}
-                  onFocus={() => searchQuery.length >= 3 && runSearch(searchQuery)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-umBlue shadow-sm placeholder:text-slate-400 focus:border-umMaize focus:outline-none focus:ring-2 focus:ring-umMaize/40"
-                />
-                {showResults && (
-                  <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-                    {searchResults.length === 0 ? (
-                      <p className="px-3 py-2 text-xs text-slate-500">
-                        No courses match. Try different keywords.
-                      </p>
-                    ) : (
-                      searchResults.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => addCourse(c)}
-                          className="block w-full px-3 py-2 text-left text-sm text-umBlue hover:bg-slate-100"
-                        >
-                          {c.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Chips */}
-              <div className="mt-2 flex flex-wrap gap-2">
-                {Array.from(selectedCourses.entries()).map(([id, name]) => (
-                  <div
-                    key={id}
-                    className="group relative inline-flex max-w-full items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 pr-6 text-xs font-medium text-umBlue shadow-sm"
-                  >
-                    <span className="truncate">{name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeCourse(id)}
-                      className="absolute right-0.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-red-600"
-                      aria-label={`Remove ${name}`}
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Day preference */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-umBlue">
                 Which days work for you?<span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-slate-500">Pick at least one.</p>
               <div className="mt-1 flex flex-wrap gap-2 text-sm">
                 {DAYS.map((day) => (
                   <label
@@ -480,7 +348,7 @@ export default function OnboardingPage() {
                 disabled={loading}
                 className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-umBlue to-umMaize px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-umBlue/30 transition hover:brightness-110 disabled:opacity-50"
               >
-                {loading ? "Saving..." : "Save and continue"}
+                {loading ? "Saving..." : "Save profile"}
               </button>
             </div>
           </form>

@@ -14,13 +14,14 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("first_name, year, gender, location_preference, time_preference, day_preference")
+    .select("first_name, year, gender, match_same_gender, location_preference, time_preference, day_preference")
     .eq("id", user.id)
     .single();
 
   if (
     !profile?.year ||
     !profile?.gender ||
+    (profile?.match_same_gender !== true && profile?.match_same_gender !== false) ||
     !profile?.location_preference?.length ||
     !profile?.time_preference?.length ||
     !profile?.day_preference?.length

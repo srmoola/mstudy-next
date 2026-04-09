@@ -4,6 +4,24 @@ import { NextResponse, type NextRequest } from "next/server";
 const protectedRoutes = ["/dashboard", "/onboarding", "/courses"];
 const authRoutes = ["/signin", "/signup"];
 
+function isOnboardingComplete(profile: {
+  year?: string | null;
+  gender?: string | null;
+  match_same_gender?: boolean | null;
+  location_preference?: string[] | null;
+  time_preference?: string[] | null;
+  day_preference?: string[] | null;
+} | null) {
+  return (
+    !!profile?.year &&
+    !!profile?.gender &&
+    (profile?.match_same_gender === true || profile?.match_same_gender === false) &&
+    !!profile?.location_preference?.length &&
+    !!profile?.time_preference?.length &&
+    !!profile?.day_preference?.length
+  );
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -34,7 +52,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {
+  if (!user && [...protectedRoutes, "/profile"].some((r) => pathname.startsWith(r))) {
     const url = request.nextUrl.clone();
     url.pathname = "/signin";
     return NextResponse.redirect(url);
@@ -43,16 +61,11 @@ export async function middleware(request: NextRequest) {
   if (user && authRoutes.some((r) => pathname.startsWith(r))) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("year, gender, location_preference, time_preference, day_preference")
+      .select("year, gender, match_same_gender, location_preference, time_preference, day_preference")
       .eq("id", user.id)
       .single();
 
-    const onboardingComplete =
-      profile?.year &&
-      profile?.gender &&
-      profile?.location_preference?.length &&
-      profile?.time_preference?.length &&
-      profile?.day_preference?.length;
+    const onboardingComplete = isOnboardingComplete(profile);
 
     const url = request.nextUrl.clone();
     url.pathname = onboardingComplete ? "/dashboard" : "/onboarding";
@@ -62,20 +75,29 @@ export async function middleware(request: NextRequest) {
   if (user && pathname === "/") {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("year, gender, location_preference, time_preference, day_preference")
+      .select("year, gender, match_same_gender, location_preference, time_preference, day_preference")
       .eq("id", user.id)
       .single();
 
-    const onboardingComplete =
-      profile?.year &&
-      profile?.gender &&
-      profile?.location_preference?.length &&
-      profile?.time_preference?.length &&
-      profile?.day_preference?.length;
+    const onboardingComplete = isOnboardingComplete(profile);
 
     const url = request.nextUrl.clone();
     url.pathname = onboardingComplete ? "/dashboard" : "/onboarding";
     return NextResponse.redirect(url);
+  }
+
+  if (user && pathname.startsWith("/onboarding")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("year, gender, match_same_gender, location_preference, time_preference, day_preference")
+      .eq("id", user.id)
+      .single();
+
+    if (isOnboardingComplete(profile)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
