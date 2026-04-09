@@ -19,14 +19,18 @@ export default function SignUpPage() {
     const form = new FormData(e.currentTarget);
     const firstName = (form.get("first_name") as string).trim();
     const lastName = (form.get("last_name") as string).trim();
-    const email = (form.get("email") as string).trim();
+    const email = (form.get("email") as string).trim().toLowerCase();
     const password = form.get("password") as string;
     const passwordConfirmation = form.get("password_confirmation") as string;
+    const umichEmailRegex = /^[^\s@]+@umich\.edu$/;
 
     const errs: string[] = [];
     if (!firstName) errs.push("First name can't be blank");
     if (!lastName) errs.push("Last name can't be blank");
     if (!email) errs.push("Email can't be blank");
+    if (email && !umichEmailRegex.test(email)) {
+      errs.push("Invalid email. You must register with an @umich.edu email address.");
+    }
     if (password.length < 6) errs.push("Password must be at least 6 characters");
     if (password !== passwordConfirmation) errs.push("Password confirmation doesn't match");
 
