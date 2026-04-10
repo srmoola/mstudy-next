@@ -79,6 +79,7 @@ create policy "Users can delete own enrollments" on public.user_classes for dele
 -- Matches: users can read their own matches, create matches
 create policy "Users can read own matches" on public.matches for select using (auth.uid() = requester_id or auth.uid() = receiver_id);
 create policy "Users can create matches" on public.matches for insert with check (auth.uid() = requester_id);
+create policy "Receiver can update match status" on public.matches for update using (auth.uid() = receiver_id);
 
 -- Function to auto-create profile on signup
 create or replace function public.handle_new_user()

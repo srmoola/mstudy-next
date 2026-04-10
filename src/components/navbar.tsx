@@ -81,6 +81,10 @@ export default function Navbar({
           </Link>
           {user ? (
             onboardingComplete ? (
+              <>
+              <Link href="/matches" className="transition hover:text-umMaize">
+                Matches
+              </Link>
               <div className="relative" ref={profileMenuRef}>
                 {profileButton}
                 {profileOpen && (
@@ -109,6 +113,7 @@ export default function Navbar({
                   </div>
                 )}
               </div>
+              </>
             ) : (
               <>
                 <Link href="/onboarding" className="transition hover:text-umMaize">
@@ -166,6 +171,13 @@ export default function Navbar({
               {user ? (
                 onboardingComplete ? (
                   <>
+                    <Link
+                      href="/matches"
+                      className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Matches
+                    </Link>
                     <Link
                       href="/profile"
                       className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"

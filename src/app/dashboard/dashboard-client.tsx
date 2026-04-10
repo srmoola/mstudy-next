@@ -11,12 +11,36 @@ interface CourseInfo {
   number_students: number;
 }
 
+interface MatchInfo {
+  id: number;
+  status: number;
+  partnerName: string;
+  partnerInitials: string;
+  courseName: string;
+  isIncoming: boolean;
+}
+
+function statusBadge(status: number) {
+  switch (status) {
+    case 0:
+      return { text: "Pending", color: "bg-amber-100 text-amber-700" };
+    case 1:
+      return { text: "Accepted", color: "bg-emerald-100 text-emerald-700" };
+    case 2:
+      return { text: "Declined", color: "bg-red-100 text-red-600" };
+    default:
+      return { text: "Expired", color: "bg-slate-100 text-slate-500" };
+  }
+}
+
 export default function DashboardClient({
   firstName,
   initialCourses,
+  matches,
 }: {
   firstName: string;
   initialCourses: CourseInfo[];
+  matches: MatchInfo[];
 }) {
   const [courses, setCourses] = useState(initialCourses);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -98,6 +122,10 @@ export default function DashboardClient({
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  const incomingPending = matches.filter((m) => m.status === 0 && m.isIncoming);
+  const accepted = matches.filter((m) => m.status === 1);
+  const sentPending = matches.filter((m) => m.status === 0 && !m.isIncoming);
+
   return (
     <main className="min-h-screen w-full bg-white text-umBlue">
       <div className="mx-auto max-w-4xl px-3 py-10 sm:px-6 sm:py-14 lg:px-10 xl:px-16 2xl:px-24">
@@ -112,6 +140,130 @@ export default function DashboardClient({
             Your study partner dashboard. Add or remove courses anytime.
           </p>
         </header>
+
+        {/* Matches section */}
+        {(incomingPending.length > 0 || accepted.length > 0 || sentPending.length > 0) && (
+          <section className="mt-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-umBlue">Your matches</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Recent match activity.
+                </p>
+              </div>
+              <Link
+                href="/matches"
+                className="text-sm font-semibold text-umMaize transition hover:text-yellow-500"
+              >
+                View all &rarr;
+              </Link>
+            </div>
+
+            {incomingPending.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 mb-2">
+                  Action needed
+                </p>
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {incomingPending.map((m) => {
+                    const { text, color } = statusBadge(m.status);
+                    return (
+                      <li key={m.id}>
+                        <Link
+                          href={`/matches/${m.id}/respond`}
+                          className="flex items-center gap-3 rounded-xl border border-umMaize/40 bg-umMaize/5 p-3 transition hover:border-umMaize hover:shadow-md"
+                        >
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-umBlue text-xs font-bold text-white">
+                            {m.partnerInitials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-umBlue truncate">
+                              {m.partnerName}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {m.courseName}
+                            </p>
+                          </div>
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>
+                            {text}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {accepted.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-2">
+                  Active partners
+                </p>
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {accepted.map((m) => {
+                    const { text, color } = statusBadge(m.status);
+                    return (
+                      <li
+                        key={m.id}
+                        className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+                          {m.partnerInitials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-umBlue truncate">
+                            {m.partnerName}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {m.courseName}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>
+                          {text}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {sentPending.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  Sent requests
+                </p>
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {sentPending.map((m) => {
+                    const { text, color } = statusBadge(m.status);
+                    return (
+                      <li
+                        key={m.id}
+                        className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-umBlue/10 text-xs font-bold text-umBlue">
+                          {m.partnerInitials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-umBlue truncate">
+                            {m.partnerName}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {m.courseName}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>
+                          {text}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="mt-10">
           <h2 className="text-lg font-bold text-umBlue">Your courses</h2>

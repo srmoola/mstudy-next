@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedRoutes = ["/dashboard", "/onboarding", "/courses"];
+const protectedRoutes = ["/dashboard", "/onboarding", "/courses", "/matches"];
 const authRoutes = ["/signin", "/signup"];
 
 function isOnboardingComplete(profile: {
