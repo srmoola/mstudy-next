@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { course_id, receiver_id } = body;
 
-  const { data: existingMatch } = await supabase
+  const { data: existingPending } = await supabase
     .from("matches")
     .select("id")
     .eq("requester_id", user.id)
@@ -25,9 +25,25 @@ export async function POST(request: NextRequest) {
     .eq("status", 0)
     .maybeSingle();
 
-  if (existingMatch) {
+  if (existingPending) {
     return NextResponse.json(
       { error: "You already have a pending match request for this class." },
+      { status: 422 }
+    );
+  }
+
+  const { data: previousMatch } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("course_id", course_id)
+    .or(
+      `and(requester_id.eq.${user.id},receiver_id.eq.${receiver_id}),and(requester_id.eq.${receiver_id},receiver_id.eq.${user.id})`
+    )
+    .maybeSingle();
+
+  if (previousMatch) {
+    return NextResponse.json(
+      { error: "You've already been matched with this person for this class." },
       { status: 422 }
     );
   }

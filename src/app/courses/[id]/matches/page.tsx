@@ -43,12 +43,29 @@ export default async function MatchesPage({ params }: { params: Promise<{ id: st
 
   if (!currentProfile) redirect("/onboarding");
 
-  const { data: enrollments } = await supabase
-    .from("user_classes")
-    .select("user_id")
-    .eq("course_id", course.id);
+  const [{ data: enrollments }, { data: sentMatches }, { data: receivedMatches }] =
+    await Promise.all([
+      supabase.from("user_classes").select("user_id").eq("course_id", course.id),
+      supabase
+        .from("matches")
+        .select("receiver_id")
+        .eq("requester_id", user.id)
+        .eq("course_id", course.id),
+      supabase
+        .from("matches")
+        .select("requester_id")
+        .eq("receiver_id", user.id)
+        .eq("course_id", course.id),
+    ]);
 
-  const classUserIds = (enrollments || []).map((e) => e.user_id).filter((uid) => uid !== user.id);
+  const previouslyMatchedIds = new Set([
+    ...(sentMatches || []).map((m) => m.receiver_id),
+    ...(receivedMatches || []).map((m) => m.requester_id),
+  ]);
+
+  const classUserIds = (enrollments || [])
+    .map((e) => e.user_id)
+    .filter((uid) => uid !== user.id && !previouslyMatchedIds.has(uid));
 
   let suggestions: Profile[] = [];
   if (classUserIds.length > 0) {
