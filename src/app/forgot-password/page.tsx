@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignInPage() {
+export default function ForgotPasswordPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [sent, setSent] = useState(false);
   const supabase = createClient();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -18,9 +17,16 @@ export default function SignInPage() {
 
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim();
-    const password = form.get("password") as string;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!email.endsWith("@umich.edu")) {
+      setErrors(["Please enter a valid @umich.edu email address."]);
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/api/auth/confirm?next=/reset-password`,
+    });
 
     if (error) {
       setErrors([error.message]);
@@ -28,8 +34,42 @@ export default function SignInPage() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    setSent(true);
+    setLoading(false);
+  }
+
+  if (sent) {
+    return (
+      <main className="min-h-screen w-full bg-white text-umBlue">
+        <div className="mx-auto flex max-w-lg flex-col items-center px-3 py-16 text-center sm:px-6 sm:py-24">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-tr from-umBlue to-umMaize text-4xl text-white shadow-lg shadow-umBlue/30">
+            &#9993;
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+            Check your email
+          </h1>
+
+          <p className="mt-4 max-w-md text-sm text-slate-600 sm:text-base">
+            If an account exists with that email, we&apos;ve sent a password reset link.
+            Click the link in the email to set a new password.
+          </p>
+
+          <p className="mt-2 text-sm text-slate-500">
+            If you don&apos;t see it, check your spam folder.
+          </p>
+
+          <div className="mt-8">
+            <Link
+              href="/signin"
+              className="text-sm font-semibold text-umBlue underline decoration-umMaize underline-offset-4 transition hover:text-umMaize"
+            >
+              Back to sign in
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -37,13 +77,14 @@ export default function SignInPage() {
       <div className="mx-auto max-w-lg px-3 py-10 sm:px-6 sm:py-14 lg:px-10 xl:px-16 2xl:px-24">
         <header className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-umMaize">
-            Welcome back
+            Account recovery
           </p>
           <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
-            Sign in to MStudy
+            Reset your password
           </h1>
           <p className="mx-auto mt-4 max-w-md text-sm text-slate-600 sm:text-base">
-            Enter your email and password to access your account.
+            Enter the email address you signed up with and we&apos;ll send you a link
+            to reset your password.
           </p>
         </header>
 
@@ -76,57 +117,23 @@ export default function SignInPage() {
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-umBlue">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-umBlue placeholder-slate-400 focus:border-umMaize focus:outline-none focus:ring-2 focus:ring-umMaize/30"
-              />
-            </div>
-
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full cursor-pointer rounded-full bg-gradient-to-r from-umBlue to-umMaize px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-umBlue/30 transition hover:brightness-110 disabled:opacity-50"
+                className="w-full cursor-pointer rounded-full bg-linear-to-r from-umBlue to-umMaize px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-umBlue/30 transition hover:brightness-110 disabled:opacity-50"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {loading ? "Sending..." : "Send reset link"}
               </button>
             </div>
 
             <p className="text-center text-sm text-slate-500">
+              Remember your password?{" "}
               <Link
-                href="/forgot-password"
+                href="/signin"
                 className="font-semibold text-umBlue underline decoration-umMaize underline-offset-4 hover:text-umMaize"
               >
-                Forgot your password?
-              </Link>
-            </p>
-
-            <p className="text-center text-sm text-slate-500">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="font-semibold text-umBlue underline decoration-umMaize underline-offset-4 hover:text-umMaize"
-              >
-                Sign up
-              </Link>
-            </p>
-
-            <p className="text-center text-sm text-slate-500">
-              Didn&apos;t get a verification email?{" "}
-              <Link
-                href="/verify"
-                className="font-semibold text-umBlue underline decoration-umMaize underline-offset-4 hover:text-umMaize"
-              >
-                Resend it
+                Sign in
               </Link>
             </p>
           </form>

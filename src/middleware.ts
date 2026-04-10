@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const protectedRoutes = ["/dashboard", "/onboarding", "/courses", "/matches"];
-const authRoutes = ["/signin", "/signup"];
+const authRoutes = ["/signin", "/signup", "/forgot-password"];
 
 function isOnboardingComplete(profile: {
   year?: string | null;
