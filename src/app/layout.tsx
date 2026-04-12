@@ -8,7 +8,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "MStudy",
   description: "Find your perfect study partner at the University of Michigan",
-  icons: { icon: "/icon.png", apple: "/icon.png" },
 };
 
 export default async function RootLayout({
