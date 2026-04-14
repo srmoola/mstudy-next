@@ -46,7 +46,7 @@ export default function Home() {
               </div>
               <div className="space-y-0.5">
                 <dt className="font-semibold text-umBlue">Made for students</dt>
-                <dd className="text-slate-600">Not a dating app&mdash;just studying</dd>
+                <dd className="text-slate-600">Built for coursework and study sessions</dd>
               </div>
             </dl>
           </section>
