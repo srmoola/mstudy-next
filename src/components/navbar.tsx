@@ -82,40 +82,46 @@ export default function Navbar({
           {user ? (
             onboardingComplete ? (
               <>
-              <Link href="/matches" className="transition hover:text-umMaize">
-                Matches
-              </Link>
-              <div className="relative" ref={profileMenuRef}>
-                {profileButton}
-                {profileOpen && (
-                  <div className="absolute right-0 z-[120] mt-2 w-44 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-umBlue hover:bg-slate-100"
-                      onClick={() => setProfileOpen(false)}
-                    >
-                      View profile
-                    </Link>
-                    <Link
-                      href="/change-password"
-                      className="block px-4 py-2 text-sm text-umBlue hover:bg-slate-100"
-                      onClick={() => setProfileOpen(false)}
-                    >
-                      Change password
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="block w-full px-4 py-2 text-left text-sm text-umBlue hover:bg-slate-100"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
+                <Link href="/matches" className="transition hover:text-umMaize">
+                  Matches
+                </Link>
+                <Link href="/contact" className="transition hover:text-umMaize">
+                  Contact
+                </Link>
+                <div className="relative" ref={profileMenuRef}>
+                  {profileButton}
+                  {profileOpen && (
+                    <div className="absolute right-0 z-[120] mt-2 w-44 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-2 text-sm text-umBlue hover:bg-slate-100"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        View profile
+                      </Link>
+                      <Link
+                        href="/change-password"
+                        className="block px-4 py-2 text-sm text-umBlue hover:bg-slate-100"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        Change password
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="block w-full px-4 py-2 text-left text-sm text-umBlue hover:bg-slate-100"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
+                <Link href="/contact" className="transition hover:text-umMaize">
+                  Contact
+                </Link>
                 <Link href="/onboarding" className="transition hover:text-umMaize">
                   Onboarding
                 </Link>
@@ -130,6 +136,9 @@ export default function Navbar({
             )
           ) : (
             <>
+              <Link href="/contact" className="transition hover:text-umMaize">
+                Contact
+              </Link>
               <Link href="/signin" className="transition hover:text-umMaize">
                 Sign in
               </Link>
@@ -179,6 +188,13 @@ export default function Navbar({
                       Matches
                     </Link>
                     <Link
+                      href="/contact"
+                      className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Contact
+                    </Link>
+                    <Link
                       href="/profile"
                       className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
                       onClick={() => setMenuOpen(false)}
@@ -205,6 +221,13 @@ export default function Navbar({
                 ) : (
                   <>
                     <Link
+                      href="/contact"
+                      className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Contact
+                    </Link>
+                    <Link
                       href="/onboarding"
                       className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
                       onClick={() => setMenuOpen(false)}
@@ -224,6 +247,13 @@ export default function Navbar({
                 )
               ) : (
                 <>
+                  <Link
+                    href="/contact"
+                    className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Contact
+                  </Link>
                   <Link
                     href="/signin"
                     className="block px-4 py-1.5 text-umBlue hover:bg-slate-100"
